@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.env
+*.key
+*.pem
+.DS_Store
+# 覆盖所有 secret 配置
+*secret*
+*key*

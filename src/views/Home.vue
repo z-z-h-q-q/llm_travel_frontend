@@ -315,14 +315,33 @@ const startPlanning = async () => {
   isProcessing.value = true
   try {
     const planData = {
-      departure: travelForm.value.departure,
-      destination: travelForm.value.destination,
-      startDate: travelForm.value.dateRange[0],
-      endDate: travelForm.value.dateRange[1],
-      days: travelDays.value, // 添加旅行天数
-      budget: travelForm.value.budget,
-      travelers: travelForm.value.travelers,
-      preferences: travelForm.value.preferences
+      title: `${travelForm.value.destination}${travelDays.value}日行程`,
+      basic_info: {
+        departure: travelForm.value.departure,
+        destination: travelForm.value.destination,
+        startDate: travelForm.value.dateRange[0],
+        endDate: travelForm.value.dateRange[1],
+        days: travelDays.value,
+        budget: travelForm.value.budget,
+        travelers: travelForm.value.travelers,
+        preferences: travelForm.value.preferences
+      },
+      destination_intro: {
+        overview: '',
+        weather: '',
+        culture: ''
+      },
+      daily_plan: [],
+      summary: {
+        total_days: travelDays.value,
+        total_budget: {
+          attractions: 0,
+          hotels: 0,
+          meals: 0,
+          total: travelForm.value.budget
+        },
+        suggestions: []
+      }
     }
 
     const plan = await travelStore.createPlan(planData)

@@ -36,8 +36,8 @@
               @click="selectPlan(plan)"
             >
               <h4>{{ plan.title }}</h4>
-              <p>{{ plan.destination }}</p>
-              <span class="date">{{ formatDate(plan.startDate) }} - {{ formatDate(plan.endDate) }}</span>
+              <p>{{ plan.basic_info.destination }}</p>
+              <span class="date">{{ formatDate(plan.basic_info.startDate) }} - {{ formatDate(plan.basic_info.endDate) }}</span>
             </div>
           </div>
         </aside>
@@ -54,9 +54,9 @@
             <div class="details-header">
               <h2>{{ travelStore.currentPlan.title }}</h2>
               <div class="plan-info">
-                <el-tag>{{ travelStore.currentPlan.destination }}</el-tag>
-                <el-tag type="success">{{ travelStore.currentPlan.travelers }}人</el-tag>
-                <el-tag type="warning">预算 ¥{{ travelStore.currentPlan.budget }}</el-tag>
+                <el-tag>{{ travelStore.currentPlan.basic_info.destination }}</el-tag>
+                <el-tag type="success">{{ travelStore.currentPlan.basic_info.travelers }}人</el-tag>
+                <el-tag type="warning">预算 ¥{{ travelStore.currentPlan.basic_info.budget }}</el-tag>
               </div>
             </div>
 
@@ -64,7 +64,7 @@
               <el-tab-pane label="行程安排" name="itinerary">
                 <div class="day-plans">
                   <div 
-                    v-for="dayPlan in travelStore.currentPlan.itinerary" 
+                    v-for="dayPlan in travelStore.currentPlan.daily_plan" 
                     :key="dayPlan.day"
                     class="day-plan"
                   >
@@ -75,17 +75,17 @@
                     
                     <div class="activities">
                       <div 
-                        v-for="activity in dayPlan.activities" 
-                        :key="activity.id"
+                        v-for="(attraction, index) in dayPlan.attractions" 
+                        :key="index"
                         class="activity-item"
                       >
                         <div class="activity-info">
-                          <h4>{{ activity.name }}</h4>
-                          <p>{{ activity.description }}</p>
+                          <h4>{{ attraction.name }}</h4>
+                          <p>{{ attraction.description }}</p>
                           <div class="activity-meta">
-                            <el-tag size="small">{{ activity.type }}</el-tag>
-                            <span class="duration">{{ activity.duration }}小时</span>
-                            <span class="cost">¥{{ activity.cost }}</span>
+                            <el-tag size="small">景点</el-tag>
+                            <span class="duration">{{ attraction.estimated_visit_time }}</span>
+                            <span class="cost">¥{{ attraction.ticket_price }}</span>
                           </div>
                         </div>
                       </div>
@@ -97,43 +97,53 @@
               <el-tab-pane label="住宿信息" name="accommodation">
                 <div class="accommodation-list">
                   <div 
-                    v-for="dayPlan in travelStore.currentPlan.itinerary" 
+                    v-for="dayPlan in travelStore.currentPlan.daily_plan" 
                     :key="dayPlan.day"
                     v-if="dayPlan.accommodation"
                     class="accommodation-item"
                   >
                     <h4>{{ dayPlan.accommodation.name }}</h4>
-                    <p>{{ dayPlan.accommodation.location.address }}</p>
+                    <p>{{ dayPlan.accommodation.address }}</p>
                     <div class="accommodation-meta">
-                      <el-tag>{{ dayPlan.accommodation.type }}</el-tag>
+                      <el-tag>住宿</el-tag>
                       <span class="cost">¥{{ dayPlan.accommodation.cost }}/晚</span>
                     </div>
                   </div>
                 </div>
               </el-tab-pane>
 
-              <el-tab-pane label="交通信息" name="transportation">
-                <div class="transportation-list">
+              <el-tab-pane label="餐饮信息" name="meals">
+                <div class="meals-list">
                   <div 
-                    v-for="dayPlan in travelStore.currentPlan.itinerary" 
+                    v-for="dayPlan in travelStore.currentPlan.daily_plan" 
                     :key="dayPlan.day"
-                    class="day-transportation"
+                    class="day-meals"
                   >
-                    <h4>第{{ dayPlan.day }}天交通</h4>
-                    <div 
-                      v-for="transport in dayPlan.transportation" 
-                      :key="transport.id"
-                      class="transport-item"
-                    >
-                      <div class="transport-info">
-                        <span class="from">{{ transport.from.name }}</span>
-                        <el-icon><Right /></el-icon>
-                        <span class="to">{{ transport.to.name }}</span>
+                    <h4>第{{ dayPlan.day }}天餐饮</h4>
+                    <div class="meal-items">
+                      <div class="meal-item">
+                        <span class="meal-type">早餐</span>
+                        <div class="meal-info">
+                          <p><strong>{{ dayPlan.meals.breakfast.name }}</strong></p>
+                          <p>{{ dayPlan.meals.breakfast.description }}</p>
+                          <span class="cost">¥{{ dayPlan.meals.breakfast.cost }}</span>
+                        </div>
                       </div>
-                      <div class="transport-meta">
-                        <el-tag size="small">{{ transport.type }}</el-tag>
-                        <span class="duration">{{ transport.duration }}分钟</span>
-                        <span class="cost">¥{{ transport.cost }}</span>
+                      <div class="meal-item">
+                        <span class="meal-type">午餐</span>
+                        <div class="meal-info">
+                          <p><strong>{{ dayPlan.meals.lunch.name }}</strong></p>
+                          <p>{{ dayPlan.meals.lunch.description }}</p>
+                          <span class="cost">¥{{ dayPlan.meals.lunch.cost }}</span>
+                        </div>
+                      </div>
+                      <div class="meal-item">
+                        <span class="meal-type">晚餐</span>
+                        <div class="meal-info">
+                          <p><strong>{{ dayPlan.meals.dinner.name }}</strong></p>
+                          <p>{{ dayPlan.meals.dinner.description }}</p>
+                          <span class="cost">¥{{ dayPlan.meals.dinner.cost }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -178,22 +188,25 @@
           <el-input v-model="newPlanForm.title" placeholder="请输入计划名称" />
         </el-form-item>
         <el-form-item label="目的地">
-          <el-input v-model="newPlanForm.destination" placeholder="请输入目的地" />
+          <el-input v-model="newPlanForm.basic_info.destination" placeholder="请输入目的地" />
+        </el-form-item>
+        <el-form-item label="出发地">
+          <el-input v-model="newPlanForm.basic_info.departure" placeholder="请输入出发地" />
         </el-form-item>
         <el-form-item label="出发日期">
-          <el-date-picker v-model="newPlanForm.startDate" type="date" />
+          <el-date-picker v-model="newPlanForm.basic_info.startDate" type="date" />
         </el-form-item>
         <el-form-item label="返回日期">
-          <el-date-picker v-model="newPlanForm.endDate" type="date" />
+          <el-date-picker v-model="newPlanForm.basic_info.endDate" type="date" />
         </el-form-item>
         <el-form-item label="同行人数">
-          <el-input-number v-model="newPlanForm.travelers" :min="1" :max="20" />
+          <el-input-number v-model="newPlanForm.basic_info.travelers" :min="1" :max="20" />
         </el-form-item>
         <el-form-item label="预算">
-          <el-input-number v-model="newPlanForm.budget" :min="0" />
+          <el-input-number v-model="newPlanForm.basic_info.budget" :min="0" />
         </el-form-item>
         <el-form-item label="旅行偏好">
-          <el-checkbox-group v-model="newPlanForm.preferences">
+          <el-checkbox-group v-model="newPlanForm.basic_info.preferences">
             <el-checkbox label="美食">美食</el-checkbox>
             <el-checkbox label="文化">文化</el-checkbox>
             <el-checkbox label="自然">自然</el-checkbox>
@@ -235,12 +248,32 @@ const voiceText = ref('')
 
 const newPlanForm = ref({
   title: '',
-  destination: '',
-  startDate: '',
-  endDate: '',
-  travelers: 1,
-  budget: 0,
-  preferences: []
+  basic_info: {
+    destination: '',
+    departure: '',
+    startDate: '',
+    endDate: '',
+    travelers: 1,
+    budget: 0,
+    days: 0,
+    preferences: []
+  },
+  destination_intro: {
+    overview: '',
+    weather: '',
+    culture: ''
+  },
+  daily_plan: [],
+  summary: {
+    total_days: 0,
+    total_budget: {
+      attractions: 0,
+      hotels: 0,
+      meals: 0,
+      total: 0
+    },
+    suggestions: []
+  }
 })
 
 // 选择计划
@@ -259,11 +292,11 @@ const displayPlanOnMap = (plan: any) => {
   mapService.clearRoutes()
   
   // 添加活动地点标记
-  plan.itinerary.forEach((dayPlan: any) => {
-    dayPlan.activities.forEach((activity: any) => {
-      mapService.addMarker(activity.location.coordinates, {
-        title: activity.name,
-        content: activity.description
+  plan.daily_plan.forEach((dayPlan: any) => {
+    dayPlan.attractions.forEach((attraction: any) => {
+      mapService.addMarker([attraction.location.longitude, attraction.location.latitude], {
+        title: attraction.name,
+        content: attraction.description
       })
     })
   })
@@ -311,12 +344,25 @@ const processVoiceInput = async () => {
 
 // 创建计划
 const createPlan = async () => {
-  if (!newPlanForm.value.title || !newPlanForm.value.destination) {
+  if (!newPlanForm.value.title || !newPlanForm.value.basic_info.destination) {
     ElMessage.warning('请填写必要信息')
     return
   }
 
   try {
+    // 计算旅行天数
+    if (newPlanForm.value.basic_info.startDate && newPlanForm.value.basic_info.endDate) {
+      const startDate = new Date(newPlanForm.value.basic_info.startDate as any)
+      const endDate = new Date(newPlanForm.value.basic_info.endDate as any)
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      newPlanForm.value.basic_info.days = diffDays + 1
+    }
+
+    // 更新 summary 中的总天数和总预算
+    newPlanForm.value.summary.total_days = newPlanForm.value.basic_info.days
+    newPlanForm.value.summary.total_budget.total = newPlanForm.value.basic_info.budget
+
     const plan = await travelStore.createPlan(newPlanForm.value)
     travelStore.setCurrentPlan(plan)
     showCreateDialog.value = false
@@ -587,7 +633,7 @@ onUnmounted(() => {
   }
 }
 
-.accommodation-list, .transportation-list {
+.accommodation-list, .transportation-list, .meals-list {
   padding: 1rem;
 
   .accommodation-item, .transport-item {
@@ -613,6 +659,58 @@ onUnmounted(() => {
       .cost {
         color: #666;
         font-size: 0.9rem;
+      }
+    }
+  }
+
+  .day-meals {
+    margin-bottom: 2rem;
+
+    h4 {
+      padding: 1rem;
+      background: #f5f5f5;
+      border-radius: 0.5rem;
+      margin: 0 0 1rem 0;
+    }
+
+    .meal-items {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .meal-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      border: 1px solid #e0e0e0;
+      border-radius: 0.5rem;
+
+      .meal-type {
+        min-width: 60px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+      }
+
+      .meal-info {
+        flex: 1;
+
+        p {
+          margin: 0 0 0.5rem 0;
+          font-size: 0.9rem;
+
+          &:first-child {
+            font-weight: bold;
+            font-size: 1rem;
+          }
+        }
+
+        .cost {
+          color: #ff6b6b;
+          font-weight: bold;
+        }
       }
     }
   }

@@ -9,7 +9,7 @@ export interface BasicInfo {
   startDate: string
   endDate: string
   days: number
-  preferences: string
+  preferences: string[]
   budget: number
 }
 
@@ -19,15 +19,9 @@ export interface DestinationIntro {
   culture: string
 }
 
-export interface Location {
-  longitude: number
-  latitude: number
-}
-
 export interface Attraction {
   name: string
   address: string
-  location: Location
   description: string
   ticket_price: number
   estimated_visit_time: string
@@ -36,7 +30,6 @@ export interface Attraction {
 export interface Accommodation {
   name: string
   address: string
-  location: Location
   cost: number
 }
 

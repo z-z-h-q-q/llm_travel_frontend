@@ -1,0 +1,75 @@
+{
+    "title": "string, 整个旅行计划名称，如“东京5日深度游”",
+    "basic_info": {
+        "departure": "{{departure}}",
+        "destination": "{{destination}}",
+        "travelers": "{{travelers}}",
+        "startDate": "{{startDate}}",
+        "endDate": "{{endDate}}",
+        "days": "{{days}}",
+        "preferences": "{{preferences}}",
+        "budget": "{{budget}}"
+    },
+    "destination_intro": {
+        "overview": "string, 介绍目的地的基本信息，约100字",
+        "weather": "string, 当地天气状况及穿衣指南，约100字",
+        "culture": "string, 当地文化、风俗、美食等，约100字"
+    },
+    "daily_plan": [
+        {
+            "day": "integer, 第几天，从1开始计数",
+            "date": "string, YYYY-MM-DD, 当天日期",
+            "accommodation": {
+                "name": "string, 酒店名称",
+                "address": "string, 酒店详细地址",
+                "location": {
+                    "longitude": "number, 经度",
+                    "latitude": "number, 纬度"
+                },
+                "cost": "number, 元, 每晚住宿费用"
+            },
+            "attractions": [
+                {
+                    "name": "string, 景点名称",
+                    "address": "string, 景点详细地址",
+                    "location": {
+                        "longitude": "number, 经度",
+                        "latitude": "number, 纬度"
+                    },
+                    "description": "string, 简要介绍景点",
+                    "ticket_price": "number, 元, 门票价格",
+                    "estimated_visit_time": "string, 建议游览时间段，例如'09:00-11:00'"
+                }
+            ],
+            "meals": {
+                "breakfast": {
+                    "name": "string, 餐馆名称",
+                    "description": "string, 推荐理由或特色",
+                    "cost": "number, 元"
+                },
+                "lunch": {
+                    "name": "string, 餐馆名称",
+                    "description": "string, 推荐理由或特色",
+                    "cost": "number, 元"
+                },
+                "dinner": {
+                    "name": "string, 餐馆名称",
+                    "description": "string, 推荐理由或特色",
+                    "cost": "number, 元"
+                }
+            }
+        }
+    ],
+    "summary": {
+        "total_days": "{{days}}",
+        "total_budget": {
+            "attractions": "number, 元, 景点总费用",
+            "hotels": "number, 元, 住宿总费用",
+            "meals": "number, 元, 餐饮总费用",
+            "total": "number, 元, 整体预算合计"
+        },
+        "suggestions": [
+            "行前建议与注意事项"
+        ]
+    }
+}

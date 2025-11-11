@@ -2,91 +2,86 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '@/services/api'
 
-export interface TravelPlan {
-  id: string
-  title: string
+export interface BasicInfo {
   departure: string
   destination: string
+  travelers: number
   startDate: string
   endDate: string
-  days: number // 旅行总天数
+  days: number
+  preferences: string
   budget: number
-  travelers: number
-  preferences: string[]
-  itineraryDays: DayPlan[] // 行程天数组（避免与days字段冲突）
-  createdAt: string
-  updatedAt: string
+}
+
+export interface DestinationIntro {
+  overview: string
+  weather: string
+  culture: string
+}
+
+export interface Location {
+  longitude: number
+  latitude: number
+}
+
+export interface Attraction {
+  name: string
+  address: string
+  location: Location
+  description: string
+  ticket_price: number
+  estimated_visit_time: string
+}
+
+export interface Accommodation {
+  name: string
+  address: string
+  location: Location
+  cost: number
+}
+
+export interface MealInfo {
+  name: string
+  description: string
+  cost: number
+}
+
+export interface DayMeals {
+  breakfast: MealInfo
+  lunch: MealInfo
+  dinner: MealInfo
 }
 
 export interface DayPlan {
   day: number
   date: string
-  activities: Activity[]
-  accommodation?: Accommodation
-  meals: Meal[]
-  transportation: Transportation[]
-  estimatedCost: number
+  accommodation: Accommodation
+  attractions: Attraction[]
+  meals: DayMeals
 }
 
-export interface Activity {
-  id: string
-  name: string
-  type: 'attraction' | 'entertainment' | 'shopping' | 'culture'
-  location: {
-    name: string
-    coordinates: [number, number]
-    address: string
-  }
-  duration: number // 小时
-  cost: number
-  description: string
-  rating?: number
-  images?: string[]
+export interface TotalBudget {
+  attractions: number
+  hotels: number
+  meals: number
+  total: number
 }
 
-export interface Accommodation {
-  id: string
-  name: string
-  type: 'hotel' | 'hostel' | 'bnb' | 'apartment'
-  location: {
-    name: string
-    coordinates: [number, number]
-    address: string
-  }
-  cost: number
-  rating?: number
-  amenities: string[]
-  images?: string[]
+export interface Summary {
+  total_days: number
+  total_budget: TotalBudget
+  suggestions: string[]
 }
 
-export interface Meal {
+export interface TravelPlan {
   id: string
-  name: string
-  type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
-  location: {
-    name: string
-    coordinates: [number, number]
-    address: string
-  }
-  cost: number
-  cuisine: string
-  rating?: number
-}
-
-export interface Transportation {
-  id: string
-  type: 'flight' | 'train' | 'bus' | 'taxi' | 'subway' | 'walking'
-  from: {
-    name: string
-    coordinates: [number, number]
-  }
-  to: {
-    name: string
-    coordinates: [number, number]
-  }
-  cost: number
-  duration: number // 分钟
-  description: string
+  title: string
+  basic_info: BasicInfo
+  destination_intro: DestinationIntro
+  daily_plan: DayPlan[]
+  summary: Summary
+  createdAt: string
+  updatedAt: string
 }
 
 export const useTravelStore = defineStore('travel', () => {

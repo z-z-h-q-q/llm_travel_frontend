@@ -113,7 +113,7 @@
                 <el-row :gutter="20">
                   <el-col :span="12">
                     <el-form-item label="预算">
-                      <el-input-number v-model="travelForm.budget" :min="0" style="width: 100%" />
+                      <el-input-number v-model="travelForm.budget" :min="0" style="width: 100%" :step="1000"/>
                     </el-form-item>
                   </el-col>
                   <el-col :span="12">
@@ -307,8 +307,8 @@ const startPlanning = async () => {
   }
 
   // 检查表单是否填写完整
-  if (!travelForm.value.destination || !travelForm.value.dateRange || travelForm.value.dateRange.length !== 2) {
-    ElMessage.warning('请先填写旅行需求信息，包括目的地和完整的旅行日期')
+  if (!travelForm.value.destination || !travelForm.value.dateRange || travelForm.value.dateRange.length !== 2 || !travelForm.value.travelers) {
+    ElMessage.warning('请先填写旅行需求信息，包括目的地、完整的旅行日期和旅行人数')
     return
   }
 

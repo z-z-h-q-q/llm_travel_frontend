@@ -197,7 +197,14 @@ const isListening = ref(false)
 const isProcessing = ref(false)
 const voiceText = ref('')
 
-const travelForm = ref({
+const travelForm = ref<{
+  departure: string
+  destination: string
+  dateRange: [string, string] | []
+  travelers: number
+  budget: number
+  preferences: string[]
+}>({
   departure: '',
   destination: '',
   dateRange: [],
@@ -282,7 +289,7 @@ const processVoiceInput = async () => {
     travelForm.value.departure = parsedData.departure || ''
     travelForm.value.destination = parsedData.destination
     if (parsedData.startDate && parsedData.endDate) {
-      travelForm.value.dateRange = [parsedData.startDate, parsedData.endDate]
+      travelForm.value.dateRange = [parsedData.startDate, parsedData.endDate] as [string, string]
       calculateTravelDays() // 计算旅行天数
     }
     travelForm.value.budget = parsedData.budget

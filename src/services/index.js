@@ -7,28 +7,23 @@
 import { api, API_CONFIG } from './api.js'
 export { api, API_CONFIG }
 
-// 导入并导出语音API服务
-import { SpeechRecognitionApiService, speechApiService } from './speech-api.js'
-export { SpeechRecognitionApiService, speechApiService }
-
-// 导入并导出语音服务
-import { 
-  SpeechRecognitionService, 
-  SpeechSynthesisService, 
-  speechRecognition, 
-  speechSynthesis 
+// 导入并导出语音服务（语音识别逻辑已合并到 ./speech.js）
+import {
+  SpeechRecognitionService,
+  SpeechSynthesisService,
+  speechRecognition,
+  speechSynthesis,
 } from './speech.js'
-export { 
-  SpeechRecognitionService, 
-  SpeechSynthesisService, 
-  speechRecognition, 
-  speechSynthesis 
+export {
+  SpeechRecognitionService,
+  SpeechSynthesisService,
+  speechRecognition,
+  speechSynthesis,
 }
 
-// 默认导出主要服务
+// 默认导出主要服务（不再导出 speechApiService）
 export default {
   api,
-  speechApiService,
   speechRecognition,
   speechSynthesis
 }

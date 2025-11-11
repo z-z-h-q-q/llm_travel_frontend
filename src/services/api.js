@@ -28,8 +28,16 @@ const apiClient = axios.create({
 // 请求拦截器
 apiClient.interceptors.request.use(
   (config) => {
-    // 这里暂时移除store依赖，稍后在单独的auth服务中处理
-    // 或者通过参数传入token
+    // Attach Authorization header from saved token (localStorage)
+    try {
+      const token = localStorage.getItem('token')
+      if (token) {
+        config.headers = config.headers || {}
+        config.headers['Authorization'] = `Bearer ${token}`
+      }
+    } catch (e) {
+      // ignore
+    }
     return config
   },
   (error) => {

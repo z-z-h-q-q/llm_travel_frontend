@@ -1,4 +1,4 @@
-import { speechApiService } from './speech-api.js'
+import { api } from './api.js'
 
 /**
  * 语音识别服务
@@ -85,9 +85,9 @@ export class SpeechRecognitionService {
         try {
           const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' })
           
-          // 使用后端API进行语音识别
+          // 使用后端API进行语音识别（直接在此文件内处理上传）
           console.log('发送音频数据到后端进行语音识别...')
-          const text = await speechApiService.recognizeSpeech(audioBlob, {
+          const text = await this._recognizeSpeech(audioBlob, {
             language: this.config.lang,
             format: 'wav',
             timeout: this.config.timeout
@@ -180,7 +180,7 @@ export class SpeechRecognitionService {
    */
   async recognizeFromFile(audioFile) {
     try {
-      const text = await speechApiService.recognizeSpeech(audioFile, {
+      const text = await this._recognizeSpeech(audioFile, {
         language: this.config.lang,
         timeout: this.config.timeout
       })
@@ -191,6 +191,42 @@ export class SpeechRecognitionService {
         this.onErrorCallback(error)
       }
       throw error
+    }
+  }
+
+  /**
+   * 内部：向后端上传音频并返回识别文本
+   * @param {Blob|File} audioBlob
+   * @param {Object} options
+   */
+  async _recognizeSpeech(audioBlob, options = {}) {
+    try {
+      const controller = new AbortController()
+      const timeout = options.timeout || this.config.timeout || 30000
+      const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.wav')
+      formData.append('format', options.format || 'wav')
+      formData.append('language', options.language || 'zh-CN')
+
+      const response = await api.post('/speech/recognize', formData, {
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      const data = response.data
+      if (!data || !data.text) {
+        throw new Error('后端语音识别服务未返回有效文本')
+      }
+
+      return data.text
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('语音识别请求超时')
+      }
+      throw new Error(`语音识别失败: ${error.response?.data?.message || error.message || '未知错误'}`)
     }
   }
 
@@ -248,3 +284,30 @@ export class SpeechSynthesisService {
 // 创建全局实例
 export const speechRecognition = new SpeechRecognitionService()
 export const speechSynthesis = new SpeechSynthesisService()
+
+// 兼容外部调用：提供 startListening/stopListening 接口（旧代码使用）
+// 这两个 alias 会委托到 startRecording/stopRecording
+if (speechRecognition && !speechRecognition.startListening) {
+  speechRecognition.startListening = function (onResult, onError) {
+    this.setCallbacks({ onResult, onError })
+    return this.startRecording()
+  }
+}
+if (speechRecognition && !speechRecognition.stopListening) {
+  speechRecognition.stopListening = function () {
+    return this.stopRecording()
+  }
+}
+
+// 明确导出 startListening/stopListening 以便 TypeScript 能识别（Vue 文件中会按名导入）
+export function startListening(onResult, onError) {
+  if (!speechRecognition) throw new Error('speechRecognition not initialized')
+  // ensure callbacks
+  speechRecognition.setCallbacks({ onResult, onError })
+  return speechRecognition.startRecording()
+}
+
+export function stopListening() {
+  if (!speechRecognition) return
+  return speechRecognition.stopRecording()
+}

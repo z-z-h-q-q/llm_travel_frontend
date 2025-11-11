@@ -104,7 +104,8 @@
             <template #header>
               <div class="card-header">
                 <span>支出记录</span>
-                <el-button type="primary" @click="showAddExpenseDialog = true" :icon="Plus">
+                <el-button type="primary" @click="showAddExpenseDialog = true">
+                  <el-icon><Plus /></el-icon>
                   添加支出
                 </el-button>
               </div>
@@ -116,7 +117,7 @@
                 <div class="voice-input">
                   <el-button 
                     :type="isListening ? 'danger' : 'primary'" 
-                    :icon="isListening ? 'Microphone' : 'Microphone'" 
+                      :icon="Microphone" 
                     size="large"
                     circle
                     @click="toggleVoiceInput"
@@ -201,7 +202,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { speechRecognition, speechSynthesis } from '@/utils/speech'
+import { speechSynthesis, startListening, stopListening } from '@/services/speech'
+// Element Plus icons used in this view
+import { Plus, Microphone, Money, ShoppingCart, Wallet, TrendCharts } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import dayjs from 'dayjs'
@@ -250,10 +253,10 @@ const budgetUsagePercentage = computed(() => {
 // 切换语音输入
 const toggleVoiceInput = () => {
   if (isListening.value) {
-    speechRecognition.stopListening()
+    stopListening()
     isListening.value = false
   } else {
-    speechRecognition.startListening(
+    startListening(
       (text) => {
         voiceText.value = text
         isListening.value = false

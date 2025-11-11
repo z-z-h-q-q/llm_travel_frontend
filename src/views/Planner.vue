@@ -96,19 +96,16 @@
 
               <el-tab-pane label="住宿信息" name="accommodation">
                 <div class="accommodation-list">
-                  <div 
-                    v-for="dayPlan in travelStore.currentPlan.daily_plan" 
-                    :key="dayPlan.day"
-                    v-if="dayPlan.accommodation"
-                    class="accommodation-item"
-                  >
-                    <h4>{{ dayPlan.accommodation.name }}</h4>
-                    <p>{{ dayPlan.accommodation.address }}</p>
-                    <div class="accommodation-meta">
-                      <el-tag>住宿</el-tag>
-                      <span class="cost">¥{{ dayPlan.accommodation.cost }}/晚</span>
-                    </div>
-                  </div>
+                      <template v-for="dayPlan in travelStore.currentPlan?.daily_plan">
+                        <div v-if="dayPlan.accommodation" :key="dayPlan.day" class="accommodation-item">
+                          <h4>{{ dayPlan.accommodation.name }}</h4>
+                          <p>{{ dayPlan.accommodation.address }}</p>
+                          <div class="accommodation-meta">
+                            <el-tag>住宿</el-tag>
+                            <span class="cost">¥{{ dayPlan.accommodation.cost }}/晚</span>
+                          </div>
+                        </div>
+                      </template>
                 </div>
               </el-tab-pane>
 
@@ -158,7 +155,7 @@
               <div class="voice-input">
                 <el-button 
                   :type="isListening ? 'danger' : 'primary'" 
-                  :icon="isListening ? 'Microphone' : 'Microphone'" 
+                  :icon="Microphone" 
                   size="large"
                   circle
                   @click="toggleVoiceInput"
@@ -231,7 +228,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useTravelStore } from '@/stores/travel'
-import { speechRecognition, speechSynthesis } from '@/utils/speech'
+import { speechSynthesis, startListening, stopListening } from '@/services/speech'
+// Element Plus icons used in this view
+import { Plus, Location, Microphone } from '@element-plus/icons-vue'
 import { mapService } from '@/utils/map'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
@@ -305,10 +304,10 @@ const displayPlanOnMap = (plan: any) => {
 // 切换语音输入
 const toggleVoiceInput = () => {
   if (isListening.value) {
-    speechRecognition.stopListening()
+    stopListening()
     isListening.value = false
   } else {
-    speechRecognition.startListening(
+    startListening(
       (text) => {
         voiceText.value = text
         isListening.value = false
@@ -397,7 +396,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   // 清理资源
-  speechRecognition.stopListening()
+  stopListening()
 })
 </script>
 

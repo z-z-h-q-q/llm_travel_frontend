@@ -14,11 +14,11 @@
           label-width="0"
           size="large"
         >
-          <el-form-item prop="username">
+          <el-form-item prop="email">
             <el-input
-              v-model="loginForm.username"
-              placeholder="用户名"
-              prefix-icon="User"
+              v-model="loginForm.email"
+              placeholder="邮箱"
+              prefix-icon="Message"
             />
           </el-form-item>
 
@@ -72,13 +72,14 @@ const userStore = useUserStore()
 
 const loginFormRef = ref<FormInstance>()
 const loginForm = reactive({
-  username: '',
+  email: '',
   password: ''
 })
 
 const loginRules: FormRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' }
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },

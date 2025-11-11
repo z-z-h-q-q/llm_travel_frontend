@@ -52,7 +52,6 @@
                     >
                       {{ isListening ? '停止录音' : '语音输入' }}
                     </el-button>
-                    <p class="voice-hint">{{ isListening ? '正在听取您的需求...' : '点击语音输入' }}</p>
                   </div>
                 </div>
               </template>
@@ -73,10 +72,17 @@
               <el-form :model="travelForm" label-width="100px" size="large">
                 <el-row :gutter="20">
                   <el-col :span="12">
+                    <el-form-item label="出发地">
+                      <el-input v-model="travelForm.departure" placeholder="请输入出发地" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
                     <el-form-item label="目的地">
                       <el-input v-model="travelForm.destination" placeholder="请输入目的地" />
                     </el-form-item>
                   </el-col>
+                </el-row>
+                <el-row :gutter="20">
                   <el-col :span="12">
                     <el-form-item label="同行人数">
                       <el-input-number v-model="travelForm.travelers" :min="1" :max="20" style="width: 100%" />
@@ -85,14 +91,23 @@
                 </el-row>
                 <el-row :gutter="20">
                   <el-col :span="12">
-                    <el-form-item label="出发日期">
-                      <el-date-picker v-model="travelForm.startDate" type="date" style="width: 100%" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="返回日期">
-                      <el-date-picker v-model="travelForm.endDate" type="date" style="width: 100%" />
-                    </el-form-item>
+                    <el-form-item label="旅行日期">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <el-date-picker 
+                        v-model="travelForm.dateRange" 
+                        type="daterange" 
+                        range-separator="至" 
+                        start-placeholder="开始日期" 
+                        end-placeholder="结束日期" 
+                        style="flex: 1;"
+                        value-format="YYYY-MM-DD"
+                        @change="calculateTravelDays"
+                      />
+                      <div class="travel-days" style="color: #606266; min-width: 80px; text-align: left;">
+                        旅行天数: {{ travelDays }} 天
+                      </div>
+                    </div>
+                  </el-form-item>
                   </el-col>
                 </el-row>
                 <el-row :gutter="20">
@@ -170,7 +185,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useTravelStore } from '@/stores/travel'
-import { speechRecognition, speechSynthesis } from '@/utils/speech'
+import { speechRecognition, speechSynthesis } from '@/services/speech'
 import { aiParseService } from '@/utils/ai'
 import { ElMessage } from 'element-plus'
 
@@ -183,31 +198,70 @@ const isProcessing = ref(false)
 const voiceText = ref('')
 
 const travelForm = ref({
+  departure: '',
   destination: '',
-  startDate: '',
-  endDate: '',
+  dateRange: [],
   travelers: 1,
   budget: 0,
   preferences: []
 })
 
+// 默认显示为0天
+const travelDays = ref(0)
+
+// 计算旅行天数
+const calculateTravelDays = () => {
+  if (travelForm.value.dateRange && travelForm.value.dateRange.length === 2) {
+    const startDate = new Date(travelForm.value.dateRange[0])
+    const endDate = new Date(travelForm.value.dateRange[1])
+    // 计算两个日期之间的天数差
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    travelDays.value = diffDays + 1 // 包含开始和结束日期
+  } else {
+    travelDays.value = 0
+  }
+}
+
+// 初始化语音识别服务
+onMounted(() => {
+  // 配置语音识别服务
+  speechRecognition.configure({
+    lang: 'zh-CN',
+    maxDuration: 30000,
+    timeout: 30000
+  })
+  
+  // 设置回调函数
+  speechRecognition.setCallbacks({
+    onResult: (text) => {
+      voiceText.value = text
+      isListening.value = false
+      ElMessage.success('语音识别成功')
+    },
+    onError: (error) => {
+      ElMessage.error(`语音识别失败: ${error.message || error}`)
+      isListening.value = false
+    },
+    onRecordingStart: () => {
+      console.log('开始录音')
+    },
+    onRecordingEnd: () => {
+      console.log('录音结束')
+    }
+  })
+  
+  // 欢迎语音
+  speechSynthesis.speak('欢迎使用AI旅行规划师，请说出您的旅行需求')
+})
+
 // 切换语音输入
 const toggleVoiceInput = () => {
   if (isListening.value) {
-    speechRecognition.stopListening()
+    speechRecognition.stopRecording()
     isListening.value = false
   } else {
-    speechRecognition.startListening(
-      (text) => {
-        voiceText.value = text
-        isListening.value = false
-        ElMessage.success('语音识别成功')
-      },
-      (error) => {
-        ElMessage.error(`语音识别失败: ${error}`)
-        isListening.value = false
-      }
-    )
+    speechRecognition.startRecording()
     isListening.value = true
   }
 }
@@ -225,9 +279,12 @@ const processVoiceInput = async () => {
     const parsedData = await aiParseService.parseVoiceText(voiceText.value)
     
     // 将解析结果填充到表单中
+    travelForm.value.departure = parsedData.departure || ''
     travelForm.value.destination = parsedData.destination
-    travelForm.value.startDate = parsedData.startDate
-    travelForm.value.endDate = parsedData.endDate
+    if (parsedData.startDate && parsedData.endDate) {
+      travelForm.value.dateRange = [parsedData.startDate, parsedData.endDate]
+      calculateTravelDays() // 计算旅行天数
+    }
     travelForm.value.budget = parsedData.budget
     travelForm.value.travelers = parsedData.travelers
     travelForm.value.preferences = parsedData.preferences
@@ -250,18 +307,19 @@ const startPlanning = async () => {
   }
 
   // 检查表单是否填写完整
-  if (!travelForm.value.destination || !travelForm.value.startDate || !travelForm.value.endDate) {
-    ElMessage.warning('请先填写旅行需求信息')
+  if (!travelForm.value.destination || !travelForm.value.dateRange || travelForm.value.dateRange.length !== 2) {
+    ElMessage.warning('请先填写旅行需求信息，包括目的地和完整的旅行日期')
     return
   }
 
   isProcessing.value = true
   try {
     const planData = {
-      title: `${travelForm.value.destination}旅行计划`,
+      departure: travelForm.value.departure,
       destination: travelForm.value.destination,
-      startDate: travelForm.value.startDate,
-      endDate: travelForm.value.endDate,
+      startDate: travelForm.value.dateRange[0],
+      endDate: travelForm.value.dateRange[1],
+      days: travelDays.value, // 添加旅行天数
       budget: travelForm.value.budget,
       travelers: travelForm.value.travelers,
       preferences: travelForm.value.preferences
@@ -284,10 +342,7 @@ const handleLogout = () => {
   ElMessage.success('已退出登录')
 }
 
-onMounted(() => {
-  // 初始化语音服务
-  speechSynthesis.speak('欢迎使用AI旅行规划师，请说出您的旅行需求')
-})
+// onMounted 已在上面重新定义，这里不再重复
 </script>
 
 <style scoped lang="scss">

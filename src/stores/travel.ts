@@ -1,17 +1,19 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import api from '@/utils/api'
+import api from '@/services/api'
 
 export interface TravelPlan {
   id: string
   title: string
+  departure: string
   destination: string
   startDate: string
   endDate: string
+  days: number // 旅行总天数
   budget: number
   travelers: number
   preferences: string[]
-  itinerary: DayPlan[]
+  itineraryDays: DayPlan[] // 行程天数组（避免与days字段冲突）
   createdAt: string
   updatedAt: string
 }

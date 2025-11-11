@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import api from '@/utils/api'
+import api from '@/services/api'
 
 export interface User {
   id: string

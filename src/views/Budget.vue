@@ -202,7 +202,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { speechSynthesis, startListening, stopListening } from '@/services/speech'
+import { startListening, stopListening } from '@/services/speech'
 // Element Plus icons used in this view
 import { Plus, Microphone, Money, ShoppingCart, Wallet, TrendCharts } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'

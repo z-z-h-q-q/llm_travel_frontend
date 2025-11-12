@@ -21,13 +21,9 @@ export {
   speechSynthesis,
 }
 
-// 流式语音导出
-import streamSpeech, { startStreaming, stopStreaming } from './streamSpeech.js'
-export { streamSpeech, startStreaming, stopStreaming }
-
-// 默认导出主要服务（不再导出 speechApiService）
+// 默认导出主要服务（不再导出 speechApiService 或流式语音工具）
 export default {
   api,
   speechRecognition,
-  speechSynthesis
+  speechSynthesis,
 }

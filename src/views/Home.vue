@@ -56,17 +56,20 @@
                 </div>
               </template>
               
-              <!-- 语音识别结果 -->
-              <div v-if="voiceText" class="voice-result">
-                <el-alert 
-                  :title="`语音识别结果：${voiceText}`" 
-                  type="info" 
-                  :closable="false"
-                  show-icon
-                />
-                <el-button @click="processVoiceInput" type="primary" :loading="isProcessing" style="margin-top: 1rem;">
-                  解析语音内容
-                </el-button>
+              <!-- 单段语音识别结果：点击语音输入后显示，直接写入文本框，右上 X 清空，右侧保留解析按钮 -->
+              <div v-if="showVoiceArea" class="voice-result">
+                <div style="display:flex; gap:8px; align-items:flex-start;">
+                  <div style="flex:1; position: relative;">
+                    <el-input type="textarea" v-model="transcript.text" :rows="4" />
+                    <button @click="clearTranscript" style="position:absolute; right:6px; top:6px; border:none; background:transparent; cursor:pointer;">
+                      <el-icon><Close /></el-icon>
+                    </button>
+                  </div>
+
+                  <div style="display:flex; flex-direction:column; gap:6px">
+                    <el-button size="small" type="success" @click="sendTranscriptToParse" :loading="isProcessing">解析</el-button>
+                  </div>
+                </div>
               </div>
 
               <el-form :model="travelForm" label-width="100px" size="large">
@@ -175,11 +178,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { Microphone, MapLocation, Money, Cloudy } from '@element-plus/icons-vue'
+import { Microphone, MapLocation, Money, Cloudy, Close } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useTravelStore } from '@/stores/travel'
-import { speechRecognition, speechSynthesis } from '@/services/speech'
 import { aiParseService } from '@/utils/ai'
 import { ElMessage } from 'element-plus'
 
@@ -189,7 +191,17 @@ const travelStore = useTravelStore()
 
 const isListening = ref(false)
 const isProcessing = ref(false)
-const voiceText = ref('')
+
+// 控制语音结果区域是否显示（仅在点击语音输入后显示）
+const showVoiceArea = ref(false)
+
+// 单段转录（最终累积）
+const transcript = ref({ text: '' })
+
+// 临时引用到 SpeechRecognition 实例（仅在 Home.vue 使用）
+let recognition: any = null
+
+// 不再使用 combinedTranscript 或显示中间结果
 
 const travelForm = ref<{
   departure: string
@@ -241,77 +253,118 @@ const calculateTravelDays = () => {
 
 // 初始化语音识别服务
 onMounted(() => {
-  // 配置语音识别服务
-  speechRecognition.configure({
-    lang: 'zh-CN',
-    maxDuration: 30000,
-    timeout: 30000
-  })
-  
-  // 设置回调函数
-  speechRecognition.setCallbacks({
-    onResult: (text) => {
-      voiceText.value = text
-      isListening.value = false
-      ElMessage.success('语音识别成功')
-    },
-    onError: (error) => {
-      ElMessage.error(`语音识别失败: ${error.message || error}`)
-      isListening.value = false
-    },
-    onRecordingStart: () => {
-      console.log('开始录音')
-    },
-    onRecordingEnd: () => {
-      console.log('录音结束')
+  // 初始化浏览器 Web Speech API (仅在支持的浏览器中启用)
+  const initBrowserRecognition = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      console.warn('浏览器不支持 Web Speech API 语音识别')
+      return
     }
-  })
+
+    recognition = new SpeechRecognition()
+    recognition.lang = 'zh-CN'
+    recognition.interimResults = true
+    recognition.continuous = true
+
+    recognition.onstart = () => {
+      console.log('语音识别已启动')
+    }
+
+    recognition.onerror = (event: any) => {
+      console.error('识别错误', event)
+      ElMessage.error('语音识别出错')
+      isListening.value = false
+    }
+
+    recognition.onend = () => {
+      console.log('识别结束')
+      isListening.value = false
+      // 仅在结束录音后显示语音结果区域（满足“语音完整输入后再显示”要求）
+      showVoiceArea.value = true
+    }
+
+    recognition.onresult = (event: any) => {
+      // 处理从 resultIndex 开始的结果，只累积最终结果到 transcript.text（不处理中间结果）
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const result = event.results[i]
+        if (result.isFinal) {
+          const text = Array.from(result).map((r: any) => r.transcript).join('')
+          transcript.value.text = (transcript.value.text + ' ' + text.trim()).trim()
+        }
+      }
+    }
+  }
+
+  initBrowserRecognition()
+
   
-  // 欢迎语音
-  speechSynthesis.speak('欢迎使用AI旅行规划师，请说出您的旅行需求')
 })
 
 // 切换语音输入
 const toggleVoiceInput = () => {
+  if (!recognition) {
+    ElMessage.error('当前浏览器不支持语音识别')
+    return
+  }
+
   if (isListening.value) {
-    speechRecognition.stopRecording()
+    recognition.stop()
     isListening.value = false
   } else {
-    speechRecognition.startRecording()
-    isListening.value = true
+    try {
+      recognition.start()
+      isListening.value = true
+    } catch (e) {
+      console.error('启动识别失败', e)
+      ElMessage.error('启动识别失败')
+    }
   }
 }
 
 // 处理语音输入
-const processVoiceInput = async () => {
-  if (!voiceText.value) {
-    ElMessage.warning('请先进行语音输入')
+// 将指定文本发送给后端的大模型以提取 basic info
+const processVoiceText = async (text: string) => {
+  if (!text || !text.trim()) {
+    ElMessage.warning('文本为空，请先录入或选择要解析的文本')
     return
   }
 
   isProcessing.value = true
   try {
-    // 使用AI解析服务
-    const parsedData = await aiParseService.parseVoiceText(voiceText.value)
-    
-    // 将解析结果填充到表单中
+    const parsedData = await aiParseService.parseVoiceText(text)
+
+    // 将解析结果填充到表单中（与原逻辑一致）
     travelForm.value.departure = parsedData.departure || ''
-    travelForm.value.destination = parsedData.destination
+    travelForm.value.destination = parsedData.destination || ''
     if (parsedData.startDate && parsedData.endDate) {
       travelForm.value.dateRange = [parsedData.startDate, parsedData.endDate] as [string, string]
-      calculateTravelDays() // 计算旅行天数
+      calculateTravelDays()
     }
-    travelForm.value.budget = parsedData.budget
-    travelForm.value.travelers = parsedData.travelers
-    travelForm.value.preferences = parsedData.preferences
-    
+    travelForm.value.budget = parsedData.budget || 0
+    travelForm.value.travelers = parsedData.travelers || 1
+    travelForm.value.preferences = parsedData.preferences || []
+
     ElMessage.success('语音解析完成，已填充到表单中，您可以直接修改')
   } catch (error) {
+    console.error(error)
     ElMessage.error('语音解析失败，请重试')
   } finally {
     isProcessing.value = false
   }
 }
+// 清空整段转录
+const clearTranscript = () => {
+  transcript.value.text = ''
+}
+
+// 发送当前整段文本进行解析
+const sendTranscriptToParse = () => {
+  const text = (transcript.value.text || '').trim()
+  processVoiceText(text)
+}
+
+// 供 UI 直接调用（保留旧名兼容）
+const sendAllToParse = sendTranscriptToParse
 
 
 // 开始规划

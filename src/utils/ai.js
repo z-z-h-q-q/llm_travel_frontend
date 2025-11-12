@@ -10,14 +10,14 @@ export class AIParseService {
   // 解析语音文本为结构化数据
   async parseVoiceText(text) {
     try {
-      // 这里可以调用真实的AI API
-      // const response = await this.callAIAPI(text);
-      
-      // 模拟AI解析结果
-      return this.simulateParseResult(text);
+      // 调用后端（由后端使用大模型提取 basicinfo）
+      const result = await this.callAIAPI(text)
+      // 期望后端返回 JSON 格式的结构化 basic info
+      return result
     } catch (error) {
-      console.error('AI解析失败:', error);
-      throw new Error('AI解析失败');
+      console.error('AI解析失败，回退到本地模拟解析:', error);
+      // 回退到本地简单解析以保证体验不中断
+      return this.simulateParseResult(text);
     }
   }
 

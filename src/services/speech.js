@@ -200,43 +200,6 @@ export class SpeechRecognitionService {
   }
 
   /**
-   * 内部：向后端上传音频并返回识别文本
-   * @param {Blob|File} audioBlob
-   * @param {Object} options
-   */
-  async _recognizeSpeech(audioBlob, options = {}) {
-    try {
-      const controller = new AbortController()
-      const timeout = options.timeout || this.config.timeout || 30000
-      const timeoutId = setTimeout(() => controller.abort(), timeout)
-
-      const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.wav')
-      formData.append('format', options.format || 'wav')
-      formData.append('language', options.language || 'zh-CN')
-
-      const response = await api.post('/speech/recognize', formData, {
-        signal: controller.signal
-      })
-
-      clearTimeout(timeoutId)
-
-      const data = response.data
-      if (!data || (!data.text && !data.basic_info)) {
-        throw new Error('后端语音识别服务未返回有效响应')
-      }
-
-      // 返回完整数据（可能包含 text 和 basic_info）
-      return data
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        throw new Error('语音识别请求超时')
-      }
-      throw new Error(`语音识别失败: ${error.response?.data?.message || error.message || '未知错误'}`)
-    }
-  }
-
-  /**
    * 销毁服务
    */
   destroy() {

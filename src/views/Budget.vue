@@ -257,8 +257,10 @@ const toggleVoiceInput = () => {
     isListening.value = false
   } else {
     startListening(
-      (text) => {
-        voiceText.value = text
+      (res) => {
+        // res may be a string or an object { text, basic_info }
+        const text = typeof res === 'string' ? res : res.text
+        voiceText.value = text || ''
         isListening.value = false
         ElMessage.success('语音识别成功')
       },

@@ -15,6 +15,7 @@ export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(localStorage.getItem('token'))
   const loading = ref(false)
+  const preferences = ref<string[]>(JSON.parse(localStorage.getItem('travel_preferences') || '[]'))
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
 
@@ -42,6 +43,13 @@ export const useUserStore = defineStore('user', () => {
           username: (u.user_metadata && (u.user_metadata as any).username) || u.email || '',
           email: u.email || ''
         }
+        // 同步来自 Supabase 的 travel_preferences 到 store
+        try {
+          const saved = (u.user_metadata && (u.user_metadata as any).travel_preferences) || []
+          preferences.value = Array.isArray(saved) ? saved : []
+        } catch (e) {
+          // ignore
+        }
       } catch (error) {
         logout()
       }
@@ -60,6 +68,13 @@ export const useUserStore = defineStore('user', () => {
               username: (u.user_metadata && (u.user_metadata as any).username) || u.email || '',
               email: u.email || ''
             }
+              // 同步来自 Supabase 的 travel_preferences 到 store
+              try {
+                const saved = (u.user_metadata && (u.user_metadata as any).travel_preferences) || []
+                preferences.value = Array.isArray(saved) ? saved : []
+              } catch (e) {
+                // ignore
+              }
           }
         } else {
           // cleared
@@ -102,6 +117,13 @@ export const useUserStore = defineStore('user', () => {
           username: (supUser.user_metadata && (supUser.user_metadata as any).username) || supUser.email || '',
           email: supUser.email || ''
         }
+        // 登录成功后从 supabase user metadata 中同步偏好
+        try {
+          const saved = (supUser.user_metadata && (supUser.user_metadata as any).travel_preferences) || []
+          preferences.value = Array.isArray(saved) ? saved : []
+        } catch (e) {
+          // ignore
+        }
       }
       ElMessage.success('登录成功')
       return true
@@ -140,10 +162,50 @@ export const useUserStore = defineStore('user', () => {
     user.value = null
     token.value = null
     localStorage.removeItem('token')
+    // 不删除用户偏好，本地存储保留
     try {
       supabase.auth.signOut()
     } catch (e) {
       // ignore
+    }
+  }
+
+  // 保存旅行偏好到后端（若已登录）并回写本地存储与 store
+  const setPreferences = async (prefs: string[]) => {
+    const arr = Array.isArray(prefs) ? prefs : []
+    preferences.value = arr
+    try {
+      localStorage.setItem('travel_preferences', JSON.stringify(preferences.value))
+    } catch (e) {
+      // ignore storage errors
+    }
+
+    try {
+      // 如果用户已登录，尝试将偏好写入 Supabase 用户 metadata
+      // supabase.auth.updateUser 接受 { data: { ... } }
+      const { data, error } = await supabase.auth.updateUser({ data: { travel_preferences: arr } })
+      if (error) {
+        console.error('保存旅行偏好到 supabase 失败:', error)
+        return false
+      }
+      // 成功后，如果返回了用户信息，可以更新本地 user.value 的 metadata（非必需）
+      if (data?.user) {
+        try {
+          // 合并 user_metadata 到 user.value（仅保守更新 username/email 不变）
+          const u = data.user
+          user.value = {
+            id: u.id,
+            username: (u.user_metadata && (u.user_metadata as any).username) || u.email || user.value?.username || '',
+            email: u.email || user.value?.email || ''
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+      return true
+    } catch (e) {
+      console.error('保存旅行偏好发生异常:', e)
+      return false
     }
   }
 
@@ -156,5 +218,7 @@ export const useUserStore = defineStore('user', () => {
     login,
     register,
     logout
+    ,preferences,
+    setPreferences
   }
 })

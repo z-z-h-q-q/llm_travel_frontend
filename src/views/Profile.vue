@@ -8,9 +8,9 @@
           <span>个人中心</span>
         </div>
         <nav class="nav">
-          <el-button @click="$router.push('/')" type="text">首页</el-button>
-          <el-button @click="$router.push('/planner')" type="text">行程规划</el-button>
-          <el-button @click="$router.push('/budget')" type="text">预算管理</el-button>
+          <el-button @click="$router.push('/')" type="text" :class="{ 'is-active': route.path === '/' }">首页</el-button>
+          <el-button @click="$router.push('/planner')" type="text" :class="{ 'is-active': route.path.startsWith('/planner') }">行程规划</el-button>
+          <el-button @click="$router.push('/profile')" type="text" :class="{ 'is-active': route.path.startsWith('/profile') }">个人中心</el-button>
           <el-button @click="handleLogout" type="text">退出</el-button>
         </nav>
       </div>
@@ -26,7 +26,6 @@
                 <el-avatar :size="80" :src="userStore.user?.avatar">
                   <el-icon><User /></el-icon>
                 </el-avatar>
-                <el-button type="text" @click="showAvatarDialog = true">更换头像</el-button>
               </div>
               <div class="user-details">
                 <h2>{{ userStore.user?.username }}</h2>
@@ -102,12 +101,13 @@
               >
                 <div class="plan-info">
                   <h4>{{ plan.title }}</h4>
-                  <p>{{ plan.destination }}</p>
-                  <span class="date">{{ formatDate(plan.startDate) }} - {{ formatDate(plan.endDate) }}</span>
+                  <p>{{ plan.basic_info?.destination }}</p>
+                  <span class="date">{{ formatDate(plan.basic_info?.startDate) }} - {{ formatDate(plan.basic_info?.endDate) }}</span>
                 </div>
                 <div class="plan-meta">
-                  <el-tag>{{ plan.travelers }}人</el-tag>
-                  <el-tag type="success">¥{{ plan.budget }}</el-tag>
+                  <el-tag>{{ plan.basic_info?.travelers }}人</el-tag>
+                  <el-tag>{{ getPlanDays(plan) }}天</el-tag>
+                  <el-tag type="success">¥{{ plan.basic_info?.budget }}</el-tag>
                 </div>
               </div>
             </div>
@@ -149,15 +149,7 @@
                   <p class="stat-number">¥{{ totalExpenses }}</p>
                 </div>
               </div>
-              <div class="stat-card">
-                <div class="stat-icon">
-                  <el-icon size="24"><Star /></el-icon>
-                </div>
-                <div class="stat-content">
-                  <h4>平均评分</h4>
-                  <p class="stat-number">{{ averageRating }}</p>
-                </div>
-              </div>
+              <!-- 平均评分已移除 -->
             </div>
           </el-card>
         </section>
@@ -184,26 +176,25 @@
           </el-form>
         </el-tab-pane>
         
-        <el-tab-pane label="偏好设置" name="preferences">
-          <el-form :model="preferencesForm" label-width="100px">
-            <el-form-item label="语言">
-              <el-select v-model="preferencesForm.language">
-                <el-option label="中文" value="zh-CN" />
-                <el-option label="English" value="en-US" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="时区">
-              <el-select v-model="preferencesForm.timezone">
-                <el-option label="北京时间" value="Asia/Shanghai" />
-                <el-option label="东京时间" value="Asia/Tokyo" />
-                <el-option label="纽约时间" value="America/New_York" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="货币">
-              <el-select v-model="preferencesForm.currency">
-                <el-option label="人民币 (¥)" value="CNY" />
-                <el-option label="美元 ($)" value="USD" />
-                <el-option label="日元 (¥)" value="JPY" />
+        <el-tab-pane label="旅行偏好" name="preferences">
+          <el-form label-width="120px">
+            <el-form-item label="旅行偏好">
+              <el-select
+                v-model="travelPreferences"
+                multiple
+                filterable
+                allow-create
+                placeholder="选择或输入偏好"
+                style="width: 100%"
+              >
+                <el-option label="美食" value="美食" />
+                <el-option label="文化" value="文化" />
+                <el-option label="自然" value="自然" />
+                <el-option label="购物" value="购物" />
+                <el-option label="娱乐" value="娱乐" />
+                <el-option label="历史" value="历史" />
+                <el-option label="艺术" value="艺术" />
+                <el-option label="运动" value="运动" />
               </el-select>
             </el-form-item>
             <el-form-item>
@@ -212,64 +203,29 @@
           </el-form>
         </el-tab-pane>
         
-        <el-tab-pane label="隐私设置" name="privacy">
-          <el-form label-width="120px">
-            <el-form-item label="数据同步">
-              <el-switch v-model="privacySettings.dataSync" />
-            </el-form-item>
-            <el-form-item label="位置共享">
-              <el-switch v-model="privacySettings.locationShare" />
-            </el-form-item>
-            <el-form-item label="个性化推荐">
-              <el-switch v-model="privacySettings.personalizedRecommendation" />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="updatePrivacySettings">保存</el-button>
-            </el-form-item>
-          </el-form>
-        </el-tab-pane>
+        <!-- 隐私设置已移除 -->
       </el-tabs>
     </el-dialog>
 
-    <!-- 头像上传对话框 -->
-    <el-dialog v-model="showAvatarDialog" title="更换头像" width="400px">
-      <div class="avatar-upload">
-        <el-upload
-          class="avatar-uploader"
-          action="#"
-          :show-file-list="false"
-          :before-upload="beforeAvatarUpload"
-        >
-          <img v-if="avatarUrl" :src="avatarUrl" class="avatar" />
-          <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
-        </el-upload>
-        <p class="upload-hint">点击上传头像，支持 JPG、PNG 格式</p>
-      </div>
-      
-      <template #footer>
-        <el-button @click="showAvatarDialog = false">取消</el-button>
-        <el-button type="primary" @click="updateAvatar">确定</el-button>
-      </template>
-    </el-dialog>
+    <!-- 头像更换功能已移除（button 与上传对话框） -->
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useTravelStore } from '@/stores/travel'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const travelStore = useTravelStore()
 
 const showSettings = ref(false)
-const showAvatarDialog = ref(false)
 const activeSettingsTab = ref('profile')
-const avatarUrl = ref('')
 
 const profileForm = ref({
   username: userStore.user?.username || '',
@@ -277,17 +233,8 @@ const profileForm = ref({
   phone: ''
 })
 
-const preferencesForm = ref({
-  language: 'zh-CN',
-  timezone: 'Asia/Shanghai',
-  currency: 'CNY'
-})
-
-const privacySettings = ref({
-  dataSync: true,
-  locationShare: false,
-  personalizedRecommendation: true
-})
+// 旅行偏好：从 user store 初始化
+const travelPreferences = ref<string[]>(Array.isArray(userStore.preferences) ? [...(userStore.preferences as any)] : [])
 
 // 计算属性
 const recentPlans = computed(() => {
@@ -296,36 +243,43 @@ const recentPlans = computed(() => {
 
 const totalDays = computed(() => {
   return travelStore.plans.reduce((total, plan) => {
-    const start = dayjs(plan.startDate)
-    const end = dayjs(plan.endDate)
+    // prefer explicit days field, fallback to computing from dates
+    const days = plan?.basic_info?.days
+    if (typeof days === 'number' && days > 0) return total + days
+    const start = dayjs(plan?.basic_info?.startDate)
+    const end = dayjs(plan?.basic_info?.endDate)
+    if (!start.isValid() || !end.isValid()) return total
     return total + end.diff(start, 'day') + 1
   }, 0)
 })
 
 const totalBudget = computed(() => {
-  return travelStore.plans.reduce((total, plan) => total + plan.budget, 0)
+  return travelStore.plans.reduce((total, plan) => {
+    const b = plan?.basic_info?.budget
+    return total + (typeof b === 'number' ? b : Number(b) || 0)
+  }, 0)
 })
 
 const monthlyPlans = computed(() => {
   const currentMonth = dayjs().month()
-  return travelStore.plans.filter(plan => 
-    dayjs(plan.startDate).month() === currentMonth
-  ).length
+  return travelStore.plans.filter(plan => {
+    const sd = plan?.basic_info?.startDate
+    return sd ? dayjs(sd).month() === currentMonth : false
+  }).length
 })
 
 const visitedCities = computed(() => {
-  const cities = new Set(travelStore.plans.map(plan => plan.destination))
+  const cities = new Set(travelStore.plans.map(plan => plan.basic_info?.destination))
+  cities.delete(undefined)
   return cities.size
 })
 
 const totalExpenses = computed(() => {
-  // 模拟数据
-  return 15000
-})
-
-const averageRating = computed(() => {
-  // 模拟数据
-  return 4.5
+  // 将所有计划的 basic_info.budget 累加为总支出
+  return travelStore.plans.reduce((sum, plan) => {
+    const b = plan?.basic_info?.budget
+    return sum + (typeof b === 'number' ? b : Number(b) || 0)
+  }, 0)
 })
 
 // 选择计划
@@ -348,58 +302,27 @@ const updateProfile = async () => {
 // 更新偏好设置
 const updatePreferences = async () => {
   try {
-    // 这里调用API更新偏好设置
-    ElMessage.success('偏好设置更新成功')
+    // 保存旅行偏好到 user store（本地存储）
+    userStore.setPreferences(travelPreferences.value)
+    ElMessage.success('旅行偏好保存成功')
     showSettings.value = false
   } catch (error) {
     ElMessage.error('更新失败，请重试')
   }
 }
 
-// 更新隐私设置
-const updatePrivacySettings = async () => {
-  try {
-    // 这里调用API更新隐私设置
-    ElMessage.success('隐私设置更新成功')
-    showSettings.value = false
-  } catch (error) {
-    ElMessage.error('更新失败，请重试')
-  }
-}
+// 头像上传功能已移除
 
-// 头像上传前处理
-const beforeAvatarUpload = (file: File) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt2M = file.size / 1024 / 1024 < 2
-
-  if (!isImage) {
-    ElMessage.error('只能上传图片文件!')
-    return false
-  }
-  if (!isLt2M) {
-    ElMessage.error('图片大小不能超过 2MB!')
-    return false
-  }
-
-  // 预览图片
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    avatarUrl.value = e.target?.result as string
-  }
-  reader.readAsDataURL(file)
-  
-  return false // 阻止自动上传
-}
-
-// 更新头像
-const updateAvatar = async () => {
-  try {
-    // 这里调用API更新头像
-    ElMessage.success('头像更新成功')
-    showAvatarDialog.value = false
-  } catch (error) {
-    ElMessage.error('头像更新失败，请重试')
-  }
+// 返回某条计划的天数（优先使用 basic_info.days，回退到日期计算）
+const getPlanDays = (plan: any) => {
+  const days = plan?.basic_info?.days
+  if (typeof days === 'number' && days > 0) return days
+  const sd = plan?.basic_info?.startDate
+  const ed = plan?.basic_info?.endDate
+  const s = dayjs(sd)
+  const e = dayjs(ed)
+  if (!s.isValid() || !e.isValid()) return 0
+  return e.diff(s, 'day') + 1
 }
 
 // 退出登录
@@ -451,6 +374,13 @@ onMounted(async () => {
   .nav {
     display: flex;
     gap: 1rem;
+
+    .el-button.is-active {
+      text-decoration: underline;
+      text-decoration-color: #409eff;
+      text-underline-offset: 4px;
+      color: #409eff;
+    }
   }
 }
 

@@ -86,15 +86,20 @@ export class SpeechRecognitionService {
           const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' })
           
           // 使用后端API进行语音识别（直接在此文件内处理上传）
-          console.log('发送音频数据到后端进行语音识别...')
-          const text = await this._recognizeSpeech(audioBlob, {
+              console.log('发送音频数据到后端进行语音识别...')
+              try {
+                console.debug('Uploading audio, is FormData:', typeof FormData !== 'undefined' && (new FormData()) instanceof FormData)
+              } catch (e) {
+                // ignore in some envs
+              }
+          const result = await this._recognizeSpeech(audioBlob, {
             language: this.config.lang,
             format: 'wav',
             timeout: this.config.timeout
           })
           
           if (this.onResultCallback) {
-            this.onResultCallback(text) // 直接返回后端识别的文本
+            this.onResultCallback(result) // 返回后端整个响应（{ text, basic_info })
           }
         } catch (error) {
           console.error('处理录音数据时出错:', error)
@@ -180,11 +185,11 @@ export class SpeechRecognitionService {
    */
   async recognizeFromFile(audioFile) {
     try {
-      const text = await this._recognizeSpeech(audioFile, {
+      const result = await this._recognizeSpeech(audioFile, {
         language: this.config.lang,
         timeout: this.config.timeout
       })
-      return text
+      return result
     } catch (error) {
       console.error('从文件识别语音失败:', error)
       if (this.onErrorCallback) {
@@ -217,11 +222,12 @@ export class SpeechRecognitionService {
       clearTimeout(timeoutId)
 
       const data = response.data
-      if (!data || !data.text) {
-        throw new Error('后端语音识别服务未返回有效文本')
+      if (!data || (!data.text && !data.basic_info)) {
+        throw new Error('后端语音识别服务未返回有效响应')
       }
 
-      return data.text
+      // 返回完整数据（可能包含 text 和 basic_info）
+      return data
     } catch (error) {
       if (error.name === 'AbortError') {
         throw new Error('语音识别请求超时')

@@ -118,22 +118,15 @@
                   </el-col>
                   <el-col :span="12">
                     <el-form-item label="旅行偏好">
-                      <el-select 
-                        v-model="travelForm.preferences" 
-                        multiple 
-                        filterable 
-                        allow-create 
+                      <el-select
+                        v-model="travelForm.preferences"
+                        multiple
+                        filterable
+                        allow-create
                         placeholder="选择或输入偏好"
                         style="width: 100%"
                       >
-                        <el-option label="美食" value="美食" />
-                        <el-option label="文化" value="文化" />
-                        <el-option label="自然" value="自然" />
-                        <el-option label="购物" value="购物" />
-                        <el-option label="娱乐" value="娱乐" />
-                        <el-option label="历史" value="历史" />
-                        <el-option label="艺术" value="艺术" />
-                        <el-option label="运动" value="运动" />
+                        <el-option v-for="opt in preferenceOptions" :key="opt" :label="opt" :value="opt" />
                       </el-select>
                     </el-form-item>
                   </el-col>
@@ -181,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useTravelStore } from '@/stores/travel'
@@ -210,7 +203,22 @@ const travelForm = ref<{
   dateRange: [],
   travelers: 1,
   budget: 0,
-  preferences: []
+  // 初始化时优先采用用户已保存的旅行偏好
+  preferences: Array.isArray(userStore.preferences) ? [...(userStore.preferences as any)] : []
+})
+
+// 偏好选项：默认列表和用户已保存的偏好合并，去重
+const preferenceOptions = computed(() => {
+  const defaults = ["美食","文化","自然","购物","娱乐","历史","艺术","运动"]
+  const userPrefs = Array.isArray(userStore.preferences) ? (userStore.preferences as any) : []
+  return Array.from(new Set([...defaults, ...userPrefs]))
+})
+
+// 当用户在设置中更新偏好后，自动同步到表单的已选项
+watch(() => userStore.preferences, (newVal) => {
+  if (Array.isArray(newVal)) {
+    travelForm.value.preferences = [...newVal]
+  }
 })
 
 // 默认显示为0天
@@ -321,8 +329,8 @@ const startPlanning = async () => {
 
   isProcessing.value = true
   try {
+    // 仅发送用户填写的 basic_info，title 将由 Coze 在后端生成并保存
     const planData = {
-      title: `${travelForm.value.destination}${travelDays.value}日行程`,
       basic_info: {
         departure: travelForm.value.departure,
         destination: travelForm.value.destination,
@@ -332,22 +340,6 @@ const startPlanning = async () => {
         budget: travelForm.value.budget,
         travelers: travelForm.value.travelers,
         preferences: travelForm.value.preferences
-      },
-      destination_intro: {
-        overview: '',
-        weather: '',
-        culture: ''
-      },
-      daily_plan: [],
-      summary: {
-        total_days: travelDays.value,
-        total_budget: {
-          attractions: 0,
-          hotels: 0,
-          meals: 0,
-          total: travelForm.value.budget
-        },
-        suggestions: []
       }
     }
 

@@ -11,19 +11,30 @@ const getEnv = (key, defaultValue) => {
 }
 
 // API基础配置
+// 注意：生成旅行计划（后端调用 Coze 工作流）可能是长时任务。
+// 将全局超时时间设置为 5 分钟（300000ms）以避免前端在等待后端生成计划时过早超时。
 const API_CONFIG = {
   BASE_URL: getEnv('VITE_API_BASE_URL', 'http://localhost:3001/api'),
-  TIMEOUT: 10000
+  TIMEOUT: 300000 // 5 minutes
 }
 
 // 创建axios实例
 const apiClient = axios.create({
   baseURL: API_CONFIG.BASE_URL,
   timeout: API_CONFIG.TIMEOUT,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  // Don't set a global Content-Type header here — let axios/browser
+  // choose the correct one per-request (especially important for FormData)
 })
+
+// Ensure axios doesn't have a default post Content-Type that forces JSON
+try {
+  if (apiClient.defaults && apiClient.defaults.headers) {
+    if (apiClient.defaults.headers.common) delete apiClient.defaults.headers.common['Content-Type']
+    if (apiClient.defaults.headers.post) delete apiClient.defaults.headers.post['Content-Type']
+  }
+} catch (e) {
+  // ignore
+}
 
 // 请求拦截器
 apiClient.interceptors.request.use(
@@ -64,7 +75,20 @@ apiClient.interceptors.response.use(
 // 基础请求方法
 export const api = {
   get: (url, config = {}) => apiClient.get(url, config),
-  post: (url, data = {}, config = {}) => apiClient.post(url, data, config),
+  post: (url, data = {}, config = {}) => {
+    // If sending FormData, ensure we don't force application/json header.
+    const isForm = typeof FormData !== 'undefined' && data instanceof FormData
+    if (isForm) {
+      const merged = { ...(config || {}) }
+      merged.headers = { ...(merged.headers || {}) }
+      // remove Content-Type so browser/axios can set multipart/form-data with boundary
+      if (merged.headers['Content-Type']) delete merged.headers['Content-Type']
+      if (merged.headers['content-type']) delete merged.headers['content-type']
+      return apiClient.post(url, data, merged)
+    }
+    // otherwise default behavior (JSON etc.)
+    return apiClient.post(url, data, config)
+  },
   put: (url, data = {}, config = {}) => apiClient.put(url, data, config),
   delete: (url, config = {}) => apiClient.delete(url, config),
   patch: (url, data = {}, config = {}) => apiClient.patch(url, data, config)

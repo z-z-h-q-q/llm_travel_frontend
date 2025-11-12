@@ -101,34 +101,10 @@ export class AIParseService {
   // 调用真实的AI API
   async callAIAPI(text) {
     try {
-      const response = await api.post('/ai/chat/completions', {
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: `你是一个旅行规划助手。请从用户的语音输入中提取以下信息：
-            1. 目的地
-            2. 出发日期
-            3. 返回日期
-            4. 预算（数字）
-            5. 同行人数
-            6. 旅行偏好（美食、文化、自然、购物、娱乐）
-            
-            请以JSON格式返回结果，如果某个信息无法识别，请返回null。`
-          },
-          {
-            role: 'user',
-            content: text
-          }
-        ],
-        temperature: 0.3
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`
-        }
-      });
-      
-      return JSON.parse(response.data.choices[0].message.content);
+      // 后端现在提供 /ai/parse_basicinfo 接口来返回已解析的 BasicInfo JSON
+      const response = await api.post('/ai/parse_basicinfo', { text });
+      // 返回后端直接返回的 JSON 对象（与 BasicInfo schema 匹配）
+      return response.data;
     } catch (error) {
       console.error('AI API调用失败:', error);
       throw new Error('AI API调用失败');

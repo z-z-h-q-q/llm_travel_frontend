@@ -183,6 +183,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useTravelStore } from '@/stores/travel'
 import { aiParseService } from '@/utils/ai'
+import { api } from '@/services/api.js'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -331,23 +332,44 @@ const processVoiceText = async (text: string) => {
 
   isProcessing.value = true
   try {
-    const parsedData = await aiParseService.parseVoiceText(text)
+    // 直接调用后端 /ai/parse_basicinfo
+    const resp = await api.post('/ai/parse_basicinfo', { text })
+    const parsedData = resp.data
 
-    // 将解析结果填充到表单中（与原逻辑一致）
+    // 将解析结果填充到表单中（与原逻辑一致），注意字段可能为 null
     travelForm.value.departure = parsedData.departure || ''
     travelForm.value.destination = parsedData.destination || ''
     if (parsedData.startDate && parsedData.endDate) {
       travelForm.value.dateRange = [parsedData.startDate, parsedData.endDate] as [string, string]
       calculateTravelDays()
+    } else if (parsedData.startDate && !parsedData.endDate) {
+      // 如果只有开始日期，设置为单日范围
+      travelForm.value.dateRange = [parsedData.startDate, parsedData.startDate] as [string, string]
+      calculateTravelDays()
     }
-    travelForm.value.budget = parsedData.budget || 0
-    travelForm.value.travelers = parsedData.travelers || 1
-    travelForm.value.preferences = parsedData.preferences || []
+    travelForm.value.budget = parsedData.budget ?? 0
+    travelForm.value.travelers = parsedData.travelers ?? 1
+    travelForm.value.preferences = parsedData.preferences ?? []
 
     ElMessage.success('语音解析完成，已填充到表单中，您可以直接修改')
   } catch (error) {
     console.error(error)
-    ElMessage.error('语音解析失败，请重试')
+    // 如果后端解析失败，尝试回退到本地解析服务
+    try {
+      const parsedData = await aiParseService.parseVoiceText(text)
+      travelForm.value.departure = parsedData.departure || ''
+      travelForm.value.destination = parsedData.destination || ''
+      if (parsedData.startDate && parsedData.endDate) {
+        travelForm.value.dateRange = [parsedData.startDate, parsedData.endDate] as [string, string]
+        calculateTravelDays()
+      }
+      travelForm.value.budget = parsedData.budget || 0
+      travelForm.value.travelers = parsedData.travelers || 1
+      travelForm.value.preferences = parsedData.preferences || []
+      ElMessage.success('本地解析完成，已填充到表单中')
+    } catch (e) {
+      ElMessage.error('语音解析失败，请重试')
+    }
   } finally {
     isProcessing.value = false
   }

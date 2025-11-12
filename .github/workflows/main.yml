@@ -1,4 +1,4 @@
-name: Build and Push Frontend Docker image to Alibaba Cloud Registry
+name: Build and Push Backend Docker image to Alibaba Cloud Registry
 
 on:
   push:
@@ -9,10 +9,10 @@ env:
   REGISTRY: ${{ secrets.ALICLOUD_REGISTRY }}
   USERNAME: ${{ secrets.ALICLOUD_USERNAME }}
   PASSWORD: ${{ secrets.ALICLOUD_PASSWORD }}
-  IMAGE_NAME: ${{ secrets.IMAGE_NAME }} # e.g. myteam/frontend
+  IMAGE_NAME: ${{ secrets.IMAGE_NAME }} # e.g. myteam/backend
 
 jobs:
-  build-and-push-frontend:
+  build-and-push-backend:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,14 +24,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Debug: show registry
+        run: |
+          echo "Registry=${{ secrets.ALICLOUD_REGISTRY }}"
+
+      - name: Ensure docker logged out (debug)
+        run: |
+          docker logout ${{ secrets.ALICLOUD_REGISTRY }} || true
+
       - name: Login to Alibaba Cloud Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ env.USERNAME }}
-          password: ${{ env.PASSWORD }}
+          registry: ${{ secrets.ALICLOUD_REGISTRY }}
+          username: ${{ secrets.ALICLOUD_USERNAME }}
+          password: ${{ secrets.ALICLOUD_PASSWORD }}
+          logout: true
 
-      - name: Build and push frontend image
+      - name: Try docker login with docker CLI (debug)
+        run: |
+          echo "Attempting docker login using CLI to validate credentials..."
+          echo "${{ secrets.ALICLOUD_PASSWORD }}" | docker login ${{ secrets.ALICLOUD_REGISTRY }} -u "${{ secrets.ALICLOUD_USERNAME }}" --password-stdin
+        # keep this step to get docker client error messages if login fails; secrets are masked by Actions
+
+      - name: Build and push backend image
         uses: docker/build-push-action@v4
         with:
           context: ./
@@ -47,6 +62,6 @@ jobs:
           echo "Pushed $REGISTRY/$IMAGE_NAME:latest and $REGISTRY/$IMAGE_NAME:${GITHUB_SHA}"
 
 # Notes:
-# - Place this file in the frontend repository root under .github/workflows/
-# - Ensure the frontend repository contains a Dockerfile at the repository root.
+# - Place this file in the backend repository root under .github/workflows/
+# - Ensure the backend repository contains a Dockerfile at the repository root.
 # - Set repository secrets: ALICLOUD_REGISTRY, ALICLOUD_USERNAME, ALICLOUD_PASSWORD, IMAGE_NAME

@@ -162,7 +162,7 @@
               <p>智能预算分析和费用管理，让每一分钱都花在刀刃上</p>
             </div>
             <div class="feature-card">
-              <el-icon size="48"><CloudUpload /></el-icon>
+              <el-icon size="48"><Cloudy /></el-icon>
               <h3>云端同步</h3>
               <p>多设备数据同步，随时随地查看和修改旅行计划</p>
             </div>
@@ -175,6 +175,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
+import { Microphone, MapLocation, Money, Cloudy } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useTravelStore } from '@/stores/travel'

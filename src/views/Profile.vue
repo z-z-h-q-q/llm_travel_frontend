@@ -61,15 +61,7 @@
                 </div>
               </el-card>
             </el-col>
-            <el-col :span="8">
-              <el-card class="menu-card" @click="$router.push('/budget')">
-                <div class="menu-item">
-                  <el-icon size="32"><Money /></el-icon>
-                  <h3>预算管理</h3>
-                  <p>跟踪和管理旅行支出</p>
-                </div>
-              </el-card>
-            </el-col>
+            <!-- 预算管理暂时隐藏 -->
             <el-col :span="8">
               <el-card class="menu-card" @click="showSettings = true">
                 <div class="menu-item">

@@ -1,5 +1,5 @@
 ### Build stage
-FROM node:20-alpine AS build
+FROM crpi-qk3obbgceulitt7u.cn-shanghai.personal.cr.aliyuncs.com/llm_course/node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 COPY tsconfig*.json ./
@@ -8,7 +8,7 @@ COPY . .
 RUN npm run build
 
 ### Production stage
-FROM nginx:stable-alpine
+FROM crpi-qk3obbgceulitt7u.cn-shanghai.personal.cr.aliyuncs.com/llm_course/nginx:stable-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 # Optional: copy custom nginx config
 # COPY docker/nginx.conf /etc/nginx/conf.d/default.conf

@@ -1,10 +1,11 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
-// 安全获取环境变量
+// 安全获取环境变量：优先读取运行时注入的 window.__ENV，其次回退到 build-time 的 import.meta.env
 const getEnv = (key, defaultValue) => {
   try {
-    return (import.meta.env && import.meta.env[key]) || defaultValue
+    const runtime = (typeof window !== 'undefined' && (window).__ENV) ? (window).__ENV : {}
+    return (runtime && runtime[key]) || (import.meta.env && import.meta.env[key]) || defaultValue
   } catch (error) {
     return defaultValue
   }

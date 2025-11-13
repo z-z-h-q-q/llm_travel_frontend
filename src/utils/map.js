@@ -43,9 +43,10 @@ export class MapService {
           return;
         }
 
-        const key = import.meta.env.VITE_AMAP_KEY;
+        const runtimeEnv = (typeof window !== 'undefined' && window.__ENV) ? window.__ENV : {}
+        const key = runtimeEnv.VITE_AMAP_KEY || import.meta.env.VITE_AMAP_KEY;
         if (!key) {
-          const msg = '缺少 VITE_AMAP_KEY 环境变量，请在 .env 中设置高德地图 Key（VITE_AMAP_KEY=your_key）';
+          const msg = '缺少 VITE_AMAP_KEY 环境变量，请在运行时或 .env 中设置高德地图 Key（VITE_AMAP_KEY=your_key）';
           console.error(msg);
           reject(new Error(msg));
           return;

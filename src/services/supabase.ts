@@ -1,13 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Runtime config support: prefer window.__ENV (injected at container start),
+// fallback to build-time Vite variables (import.meta.env).
+const runtimeEnv = typeof window !== 'undefined' ? (window as any).__ENV || {} : {}
 
-// Helpful validation: fail early with clear instructions so developer can fix .env
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+const SUPABASE_URL = runtimeEnv.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_ANON_KEY = runtimeEnv.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// Only throw when running in the browser and config is missing
+if (typeof window !== 'undefined' && (!SUPABASE_URL || !SUPABASE_ANON_KEY)) {
 	throw new Error(
-		'Supabase env vars missing: please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.\n' +
-			"If you're developing locally, copy the repository root '.env.frontend' into 'frontend/.env' and fill values, then restart Vite."
+		'Supabase env vars missing: please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (runtime or build).'
 	)
 }
 

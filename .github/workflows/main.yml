@@ -1,4 +1,4 @@
-name: Build and Push Backend Docker image to Alibaba Cloud Registry
+name: Build and Push Frontend Docker Image to Alibaba Cloud Registry
 
 on:
   push:
@@ -7,61 +7,43 @@ on:
 
 env:
   REGISTRY: ${{ secrets.ALICLOUD_REGISTRY }}
-  USERNAME: ${{ secrets.ALICLOUD_USERNAME }}
-  PASSWORD: ${{ secrets.ALICLOUD_PASSWORD }}
-  IMAGE_NAME: ${{ secrets.IMAGE_NAME }} # e.g. myteam/backend
+  IMAGE_NAME: ${{ secrets.IMAGE_NAME }} # e.g. myteam/frontend
 
 jobs:
-  build-and-push-backend:
+  build-and-push-frontend:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: 🧩 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+      - name: 🧱 Set up QEMU (for multi-arch builds)
+        uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: 🧰 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Debug: show registry
-        run: |
-          echo "Registry=${{ secrets.ALICLOUD_REGISTRY }}"
-
-      - name: Ensure docker logged out (debug)
-        run: |
-          docker logout ${{ secrets.ALICLOUD_REGISTRY }} || true
-
-      - name: Login to Alibaba Cloud Registry
-        uses: docker/login-action@v2
+      - name: 🔐 Log in to Alibaba Cloud Registry
+        uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.ALICLOUD_REGISTRY }}
+          registry: ${{ env.REGISTRY }}
           username: ${{ secrets.ALICLOUD_USERNAME }}
           password: ${{ secrets.ALICLOUD_PASSWORD }}
-          logout: true
 
-      - name: Try docker login with docker CLI (debug)
-        run: |
-          echo "Attempting docker login using CLI to validate credentials..."
-          echo "${{ secrets.ALICLOUD_PASSWORD }}" | docker login ${{ secrets.ALICLOUD_REGISTRY }} -u "${{ secrets.ALICLOUD_USERNAME }}" --password-stdin
-        # keep this step to get docker client error messages if login fails; secrets are masked by Actions
-
-      - name: Build and push backend image
-        uses: docker/build-push-action@v4
+      - name: 🏗️ Build and push frontend image
+        uses: docker/build-push-action@v5
         with:
-          context: ./
+          context: .
           file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
-          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Print pushed image names
+      - name: ✅ Print pushed image names
         run: |
-          echo "Pushed $REGISTRY/$IMAGE_NAME:latest and $REGISTRY/$IMAGE_NAME:${GITHUB_SHA}"
-
-# Notes:
-# - Place this file in the backend repository root under .github/workflows/
-# - Ensure the backend repository contains a Dockerfile at the repository root.
-# - Set repository secrets: ALICLOUD_REGISTRY, ALICLOUD_USERNAME, ALICLOUD_PASSWORD, IMAGE_NAME
+          echo "✅ Successfully pushed:"
+          echo " - $REGISTRY/$IMAGE_NAME:latest"
+          echo " - $REGISTRY/$IMAGE_NAME:${{ github.sha }}"

@@ -2,6 +2,17 @@
 
 一个基于Vue3的智能旅行规划应用，通过AI技术简化旅行规划过程，提供个性化的旅行路线和建议。
 
+## 运行说明
+- **配置supabase数据库**
+- **拉取镜像**：
+```
+docker pull crpi-qk3obbgceulitt7u.cn-shanghai.personal.cr.aliyuncs.com/llm_course/frontend:V1.0.1
+```
+- **运行镜像**:
+```
+docker run -d --name travel-frontend -p 8000:80 -e VITE_SUPABASE_URL=YOUR_URL -e VITE_SUPABASE_ANON_KEY=YOUR_KEY -e VITE_API_BASE_URL=http://localhost:8000 -e VITE_AMAP_KEY=YOUR_AMAP_KEY crpi-qk3obbgceulitt7u.cn-shanghai.personal.cr.aliyuncs.com/llm_course/frontend:V1.0.1
+```
+
 ## 功能特色
 
 ### 🎯 核心功能

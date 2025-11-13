@@ -13,6 +13,8 @@ docker pull crpi-qk3obbgceulitt7u.cn-shanghai.personal.cr.aliyuncs.com/llm_cours
 docker run -d --name travel-frontend -p 8000:80 -e VITE_SUPABASE_URL=YOUR_URL -e VITE_SUPABASE_ANON_KEY=YOUR_KEY -e VITE_API_BASE_URL=http://localhost:8000 -e VITE_AMAP_KEY=YOUR_AMAP_KEY crpi-qk3obbgceulitt7u.cn-shanghai.personal.cr.aliyuncs.com/llm_course/frontend:V1.0.1
 ```
 
+-- **打开 http://localhost:8000/**
+
 ## 功能特色
 
 ### 🎯 核心功能
